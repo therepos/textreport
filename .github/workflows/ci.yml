@@ -1,17 +1,14 @@
 
 ---
 
-## `.github/workflows/build-bankstatement-api.yml`
-
-```yaml
-name: Build & Push bankstatement-api
+name: Build & Push docker-textreport
 
 on:
   push:
     branches: [ main, master ]
     paths:
-      - 'bankstatement-api/**'
-      - '.github/workflows/build-bankstatement-api.yml'
+      - 'docker-textreport/**'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -42,7 +39,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/bankstatement-api
+          images: ghcr.io/${{ github.repository_owner }}/docker-textreport
           tags: |
             type=ref,event=branch
             type=sha
@@ -51,8 +48,8 @@ jobs:
       - name: Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: ./bankstatement-api
-          file: ./bankstatement-api/Dockerfile
+          context: ./docker-textreport
+          file: ./docker-textreport/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
