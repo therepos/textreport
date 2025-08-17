@@ -6,7 +6,7 @@ from .parser_text import extract_transactions_from_text
 from .pdf_parser import extract_text_from_pdf
 from .categorize import predict_category, train_from_csv, model_status
 
-app = FastAPI(title="bankstatement-api", version="1.0")
+app = FastAPI(title="docker-textreport", version="1.0")
 
 # ---- Convert from raw text ----
 @app.post("/bank/convert-text")
@@ -66,4 +66,4 @@ def health():
 
 @app.get("/bank/version")
 def version():
-    return {"service": "bankstatement-api", "version": "1.0"}
+    return {"service": "docker-textreport", "version": "1.0"}
