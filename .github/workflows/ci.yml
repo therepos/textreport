@@ -1,56 +1,37 @@
-
----
-
-name: Build & Push docker-textreport
-
+# .github/workflows/ci.yml
+name: build-and-push
 on:
   push:
-    branches: [ main, master ]
-    paths:
-      - 'docker-textreport/**'
-      - '.github/workflows/ci.yml'
+    branches: [ "main" ]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/docker-textreport
-          tags: |
-            type=ref,event=branch
-            type=sha
-            type=raw,value=latest
-
-      - name: Build & Push
+      - name: Build and push (linux/amd64, linux/arm64)
         uses: docker/build-push-action@v6
         with:
-          context: ./docker-textreport
-          file: ./docker-textreport/Dockerfile
-          push: true
+          context: .
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/docker-textreport:latest
+            ghcr.io/${{ github.repository_owner }}/docker-textreport:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/docker-textreport:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/docker-textreport:buildcache,mode=max
