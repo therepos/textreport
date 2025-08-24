@@ -31,7 +31,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/docker-textreport:latest
-            ghcr.io/${{ github.repository_owner }}/docker-textreport:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/docker-textreport:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/docker-textreport:buildcache,mode=max
+            ghcr.io/${{ github.repository_owner }}/textreport:latest
+            ghcr.io/${{ github.repository_owner }}/textreport:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/textreport:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/textreport:buildcache,mode=max
