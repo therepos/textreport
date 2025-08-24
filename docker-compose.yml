@@ -1,0 +1,7 @@
+services:
+  textreport:
+    image: ghcr.io/therepos/textreport:latest
+    container_name: textreport
+    ports:
+      - "3019:8090"
+    restart: unless-stopped
