@@ -2,8 +2,8 @@ import io, csv
 from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.responses import StreamingResponse
 
-from .parser_text import extract_transactions_from_text
-from .pdf_parser import extract_text_from_pdf
+from .parser-text import extract_transactions_from_text
+from .parser-pdf import extract_text_from_pdf
 from .categorize import predict_category, load_rules, save_rules
 from pathlib import Path
 
