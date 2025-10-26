@@ -17,6 +17,24 @@ app = FastAPI(
     openapi_url="/openapi.json"  # default path
 )
 
+# --- DEBUG: show raw text lines extracted from PDF ---
+@app.post("/bank/debug-pdf")
+async def debug_pdf(pdf: UploadFile = File(...), lines: int = Form(80)):
+    content = await pdf.read()
+    raw_text = extract_text_from_pdf(content)
+    sliced = [ln for ln in raw_text.splitlines()][:lines]
+    return {"line_count": len(raw_text.splitlines()), "preview": sliced}
+
+# --- DEBUG: show parsed transactions + first lines of text ---
+@app.post("/bank/debug-parse")
+async def debug_parse(pdf: UploadFile = File(...), year: int = Form(2025), lines: int = Form(60)):
+    content = await pdf.read()
+    raw_text = extract_text_from_pdf(content)
+    from .parsetext import extract_transactions_from_text
+    txns = extract_transactions_from_text(raw_text, year=year)
+    preview = [ln for ln in raw_text.splitlines()][:lines]
+    return {"preview": preview, "txn_count": len(txns), "txns": txns[:20]}
+
 # -----------------------------------------------------------------------------
 # Convert from raw text
 # -----------------------------------------------------------------------------
