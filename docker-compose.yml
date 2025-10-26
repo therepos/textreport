@@ -4,6 +4,9 @@ services:
     container_name: textreport
     ports:
       - "3021:8090"
+    volumes:
+      - ./models:/data/models
+      - ./storage:/data/storage
     restart: unless-stopped
     security_opt:
       - apparmor=unconfined
