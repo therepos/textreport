@@ -1,13 +1,13 @@
 import io, csv
 from fastapi import FastAPI, UploadFile, File, Form, Body
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse
 
 from .parser_text import extract_transactions_from_text
 from .pdf_parser import extract_text_from_pdf
 from .categorize import predict_category, load_rules, save_rules
-from . import ml  # separate ML module
+from pathlib import Path
 
-app = FastAPI(title="textreport", version="1.1")
+app = FastAPI(title="textreport", version="1.2-rules-only")
 
 # ---- Convert from raw text ----
 @app.post("/bank/convert-text")
@@ -28,7 +28,7 @@ async def convert_from_text(
     for t in txns:
         date = t["date"]; payee = t["payee"]; memo = t.get("memo","")
         amount = float(t.get("amount", 0.0)); is_credit = bool(t.get("credit", False))
-        cat = predict_category(payee, memo, refund_hint=is_credit, use_ml=True)
+        cat = predict_category(payee, memo, refund_hint=is_credit)
 
         if single_amount_col:
             amt = amount if is_credit else -amount  # credit=+, debit=-
@@ -63,17 +63,12 @@ def upsert_rules(rules: dict = Body(..., example={"Food": ["ROYAL CABRI","STARBU
     save_rules(rules or {})
     return {"count": sum(len(v) for v in (rules or {}).values())}
 
-# ---- ML endpoints separated ----
-@app.post("/bank/train")
-async def train(csvfile: UploadFile = File(...)):
-    content = await csvfile.read()
-    examples, cats = ml.train_from_csv(content)
-    return {"examples": examples, "categories": cats}
-
+# ---- Health/version ----
 @app.get("/bank/health")
 def health():
-    return {"ok": True, **ml.model_status()}
+    rules_path = Path("/data/models/rules.json")
+    return {"ok": True, "rules_exists": rules_path.exists(), "rules_path": str(rules_path)}
 
 @app.get("/bank/version")
 def version():
-    return {"service": "textreport", "version": "1.1"}
+    return {"service": "textreport", "version": "1.2-rules-only"}

@@ -1,21 +1,14 @@
-import json, re, shutil, os
+import json, re, shutil
 from typing import Dict, List, Optional
 from pathlib import Path
 from rapidfuzz import fuzz
 
-# --- Runtime paths (rules live here; ML model lives in ml.py) ---
+# Runtime rules file (mounted volume)
 MODEL_DIR  = Path("/data/models")
 RULES_PATH = MODEL_DIR / "rules.json"
 
-# Ship a default rules file in-repo; auto-copy on first run
+# Ship a default in-repo file; copied on first run
 DEFAULT_RULES_PATH = Path(__file__).parent / "rules.json"
-
-# Optional ML: imported only if available (lets you remove/disable ML easily)
-try:
-    from . import ml  # provides is_model_available(), predict_category_ml()
-    HAS_ML = True
-except Exception:
-    HAS_ML = False
 
 def _norm(s: str) -> str:
     s = (s or "").upper()
@@ -24,8 +17,7 @@ def _norm(s: str) -> str:
     return s
 
 def _coerce_to_category_dict(data) -> Dict[str, List[str]]:
-    """Accept dict: { 'Food': ['STARBUCKS', ...], ... } OR
-       list back-compat: [{pattern:'STARBUCKS', category:'Food'}, ...]"""
+    """Accept dict {Category: [patterns...]} OR legacy list[{pattern,category}]."""
     out: Dict[str, List[str]] = {}
     if isinstance(data, dict):
         for cat, pats in data.items():
@@ -44,7 +36,7 @@ def _coerce_to_category_dict(data) -> Dict[str, List[str]]:
     return {}
 
 def load_rules() -> Dict[str, List[str]]:
-    # Bootstrap rules.json on first run from repo file
+    """Load category rules; bootstrap from in-repo rules on first run."""
     if not RULES_PATH.exists() and DEFAULT_RULES_PATH.exists():
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(DEFAULT_RULES_PATH, RULES_PATH)
@@ -62,6 +54,7 @@ def save_rules(rules: Dict[str, List[str]]) -> None:
     RULES_PATH.write_text(json.dumps(cleaned, indent=2), encoding="utf-8")
 
 def apply_rules(payee: str, memo: str, threshold: int = 80) -> Optional[str]:
+    """Fuzzy (partial) match payee/memo to user patterns, category-first."""
     rules = load_rules()
     if not rules:
         return None
@@ -74,18 +67,13 @@ def apply_rules(payee: str, memo: str, threshold: int = 80) -> Optional[str]:
                 best_cat, best_score = cat, score
     return best_cat if best_score >= threshold else None
 
-def predict_category(payee: str, memo: str, refund_hint: bool = False, use_ml: bool = True) -> str:
-    """Primary categorizer:
-       1) rules
-       2) (optional) refund hint
-       3) (optional) ML if module present and enabled
-    """
+def predict_category(payee: str, memo: str, refund_hint: bool = False) -> str:
+    """Rules-only prediction (kept name for compatibility)."""
     cat = apply_rules(payee, memo)
     if cat:
         return cat
     if refund_hint:
         cat = apply_rules("REFUND", memo) or None
-        if cat: return cat
-    if use_ml and HAS_ML and getattr(ml, "is_model_available", lambda: False)():
-        return ml.predict_category_ml(f"{payee} {memo}")
+        if cat:
+            return cat
     return "Other"

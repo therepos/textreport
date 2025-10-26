@@ -3,5 +3,8 @@ services:
     image: ghcr.io/therepos/textreport:latest
     container_name: textreport
     ports:
-      - "3019:8090"
+      - "3021:8090"
     restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined
+      - seccomp:unconfined
