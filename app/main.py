@@ -3,10 +3,11 @@ from fastapi import FastAPI, UploadFile, File, Form, Body
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from .parser_text import extract_transactions_from_text
-from .pdf_parser import extract_text_from_pdf   # fixed import
-from .categorize import predict_category, train_from_csv, model_status, load_rules, save_rules
+from .pdf_parser import extract_text_from_pdf
+from .categorize import predict_category, load_rules, save_rules
+from . import ml  # separate ML module
 
-app = FastAPI(title="textreport", version="1.0")
+app = FastAPI(title="textreport", version="1.1")
 
 # ---- Convert from raw text ----
 @app.post("/bank/convert-text")
@@ -27,7 +28,7 @@ async def convert_from_text(
     for t in txns:
         date = t["date"]; payee = t["payee"]; memo = t.get("memo","")
         amount = float(t.get("amount", 0.0)); is_credit = bool(t.get("credit", False))
-        cat = predict_category(payee, memo, refund_hint=is_credit)
+        cat = predict_category(payee, memo, refund_hint=is_credit, use_ml=True)
 
         if single_amount_col:
             amt = amount if is_credit else -amount  # credit=+, debit=-
@@ -62,18 +63,17 @@ def upsert_rules(rules: dict = Body(..., example={"Food": ["ROYAL CABRI","STARBU
     save_rules(rules or {})
     return {"count": sum(len(v) for v in (rules or {}).values())}
 
-# ---- Train from labeled CSV ----
+# ---- ML endpoints separated ----
 @app.post("/bank/train")
 async def train(csvfile: UploadFile = File(...)):
     content = await csvfile.read()
-    examples, cats = train_from_csv(content)
+    examples, cats = ml.train_from_csv(content)
     return {"examples": examples, "categories": cats}
 
-# ---- Health/version/model info ----
 @app.get("/bank/health")
 def health():
-    return {"ok": True, **model_status()}
+    return {"ok": True, **ml.model_status()}
 
 @app.get("/bank/version")
 def version():
-    return {"service": "textreport", "version": "1.0"}
+    return {"service": "textreport", "version": "1.1"}
